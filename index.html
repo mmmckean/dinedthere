@@ -1002,15 +1002,15 @@ input, button, textarea, select {
 
 <script>
 /* ============================================================
-   🔑  FIREBASE CONFIG — paste your values here
+   🔑  FIREBASE CONFIG — your project credentials
    ============================================================ */
 const FIREBASE_CONFIG = {
-  apiKey:            "YOUR_FIREBASE_API_KEY",
-  authDomain:        "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId:         "YOUR_PROJECT_ID",
-  storageBucket:     "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId:             "YOUR_APP_ID"
+  apiKey:            "AIzaSyApRpUJrxS7ZDcyIFLrq-jRaw3rum3pSQk",
+  authDomain:        "dinedthere.firebaseapp.com",
+  projectId:         "dinedthere",
+  storageBucket:     "dinedthere.firebasestorage.app",
+  messagingSenderId: "519586841758",
+  appId:             "1:519586841758:web:d37f08aed2cb4faf3ce78f"
 };
 
 /* ============================================================
@@ -1022,14 +1022,7 @@ const GOOGLE_PLACES_API_KEY = "AIzaSyAkpuaOxSyJjoN6cJ5cgPFTkKNs3F_Kv8s";
 /* ============================================================
    FIREBASE INIT
    ============================================================ */
-firebase.initializeApp(const firebaseConfig = {
-apiKey: "AIzaSyApRpUJrxS7ZDcyIFLrq-jRaw3rum3pSQk",
-authDomain: "dinedthere.firebaseapp.com",
-projectId: "dinedthere",
-storageBucket: "dinedthere.firebasestorage.app",
-messagingSenderId: "519586841758",
-appId: "1:519586841758:web:d37f08aed2cb4faf3ce78f"
-};);
+firebase.initializeApp(FIREBASE_CONFIG);
 const auth      = firebase.auth();
 const db        = firebase.firestore();
 const storage   = firebase.storage();
