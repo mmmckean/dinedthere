@@ -1,0 +1,1658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#c8502a" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Dine Journal" />
+<link rel="manifest" href="manifest.json" />
+<title>Dine Journal</title>
+
+<!-- ============================================================
+     GOOGLE FONTS
+     ============================================================ -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet" />
+
+<style>
+/* ============================================================
+   CSS VARIABLES & RESET
+   ============================================================ */
+:root {
+  --cream:    #fdf6ec;
+  --warm-bg:  #fef9f4;
+  --rust:     #c8502a;
+  --rust-dk:  #a33f1f;
+  --rust-lt:  #e8724f;
+  --gold:     #d4940a;
+  --sage:     #5a7a5e;
+  --charcoal: #2c2416;
+  --mid:      #6b5a47;
+  --light:    #b0a090;
+  --border:   #e8d9c8;
+  --shadow:   rgba(44,36,22,0.12);
+  --card-bg:  #ffffff;
+  --radius:   16px;
+  --radius-sm:10px;
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body:    'Lato', 'Helvetica Neue', sans-serif;
+  --tab-h:    64px;
+  --header-h: 60px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--warm-bg);
+  font-family: var(--font-body);
+  color: var(--charcoal);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+input, button, textarea, select {
+  font-family: var(--font-body);
+  font-size: 16px; /* prevents iOS zoom */
+}
+
+/* ============================================================
+   UTILITY
+   ============================================================ */
+.hidden { display: none !important; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+
+/* ============================================================
+   SCREEN MANAGER
+   ============================================================ */
+.screen {
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: var(--warm-bg);
+  transition: opacity 0.2s, transform 0.2s;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px);
+}
+.screen.active {
+  opacity: 1;
+  pointer-events: all;
+  transform: translateY(0);
+}
+
+/* ============================================================
+   AUTH SCREENS
+   ============================================================ */
+#screen-auth {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+  min-height: 100dvh;
+  background: linear-gradient(160deg, #fdf0e3 0%, #fde8d4 50%, #f9d9bc 100%);
+}
+
+.auth-logo {
+  text-align: center;
+  margin-bottom: 40px;
+}
+.auth-logo .icon {
+  font-size: 56px;
+  line-height: 1;
+  margin-bottom: 12px;
+}
+.auth-logo h1 {
+  font-family: var(--font-display);
+  font-size: 2.4rem;
+  color: var(--rust);
+  letter-spacing: -0.5px;
+}
+.auth-logo p {
+  color: var(--mid);
+  font-size: 0.95rem;
+  margin-top: 4px;
+  font-weight: 300;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--card-bg);
+  border-radius: 24px;
+  padding: 32px 28px;
+  box-shadow: 0 8px 40px rgba(200,80,42,0.15);
+}
+
+.auth-tabs {
+  display: flex;
+  background: var(--cream);
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 28px;
+}
+.auth-tab {
+  flex: 1;
+  padding: 10px;
+  text-align: center;
+  border-radius: 9px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--light);
+  transition: all 0.2s;
+  border: none;
+  background: none;
+}
+.auth-tab.active {
+  background: var(--rust);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(200,80,42,0.3);
+}
+
+.form-group {
+  margin-bottom: 18px;
+}
+.form-group label {
+  display: block;
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: var(--mid);
+  margin-bottom: 7px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.form-group input,
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--warm-bg);
+  color: var(--charcoal);
+  font-size: 1rem;
+  transition: border-color 0.2s;
+  outline: none;
+  -webkit-appearance: none;
+}
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  border-color: var(--rust);
+}
+.form-group textarea {
+  resize: vertical;
+  min-height: 90px;
+}
+
+.btn {
+  display: block;
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.18s;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-primary {
+  background: var(--rust);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(200,80,42,0.35);
+}
+.btn-primary:active { background: var(--rust-dk); transform: scale(0.98); }
+
+.btn-secondary {
+  background: var(--cream);
+  color: var(--rust);
+  border: 2px solid var(--border);
+}
+.btn-secondary:active { background: var(--border); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--mid);
+  font-size: 0.9rem;
+  padding: 10px;
+  width: auto;
+}
+
+.auth-error {
+  color: #c0392b;
+  font-size: 0.88rem;
+  text-align: center;
+  margin-bottom: 14px;
+  min-height: 20px;
+  font-weight: 700;
+}
+
+/* ============================================================
+   APP SHELL (after login)
+   ============================================================ */
+#app-shell { display: none; }
+#app-shell.visible { display: block; }
+
+/* Header */
+.app-header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: var(--header-h);
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  z-index: 100;
+  box-shadow: 0 2px 12px var(--shadow);
+}
+.app-header .header-title {
+  flex: 1;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  color: var(--rust);
+  font-weight: 700;
+}
+.app-header .header-back {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  padding: 8px 12px 8px 0;
+  cursor: pointer;
+  color: var(--rust);
+  -webkit-tap-highlight-color: transparent;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+.header-action {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  padding: 8px;
+  cursor: pointer;
+  color: var(--rust);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Bottom Tab Bar */
+.tab-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: var(--tab-h);
+  background: var(--card-bg);
+  border-top: 1px solid var(--border);
+  display: flex;
+  z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.tab-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--light);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.15s;
+  padding-bottom: 2px;
+}
+.tab-item.active { color: var(--rust); }
+.tab-item .tab-icon { font-size: 1.5rem; line-height: 1; }
+
+/* Page content area */
+.page-content {
+  padding-top: calc(var(--header-h) + 12px);
+  padding-bottom: calc(var(--tab-h) + 24px + env(safe-area-inset-bottom));
+  padding-left: 16px;
+  padding-right: 16px;
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+/* ============================================================
+   CARDS & LIST ITEMS
+   ============================================================ */
+.card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 18px;
+  box-shadow: 0 2px 12px var(--shadow);
+  margin-bottom: 14px;
+  border: 1px solid var(--border);
+}
+
+.restaurant-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: 0 2px 10px var(--shadow);
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.12s;
+}
+.restaurant-item:active { transform: scale(0.98); }
+
+.restaurant-avatar {
+  width: 54px;
+  height: 54px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--rust-lt), var(--rust));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  flex-shrink: 0;
+  position: relative;
+}
+.visit-badge {
+  position: absolute;
+  top: -6px; right: -6px;
+  background: var(--gold);
+  color: #fff;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  min-width: 22px;
+  text-align: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+
+.restaurant-info { flex: 1; min-width: 0; }
+.restaurant-name {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  color: var(--charcoal);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 3px;
+}
+.restaurant-meta {
+  font-size: 0.82rem;
+  color: var(--light);
+}
+.restaurant-arrow { color: var(--border); font-size: 1.2rem; }
+
+/* ============================================================
+   HOME SCREEN
+   ============================================================ */
+.section-title {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  color: var(--charcoal);
+  margin-bottom: 14px;
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.section-title:first-child { margin-top: 0; }
+
+.greeting-banner {
+  background: linear-gradient(135deg, var(--rust) 0%, var(--rust-lt) 100%);
+  color: #fff;
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 20px rgba(200,80,42,0.3);
+}
+.greeting-banner h2 {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  margin-bottom: 4px;
+}
+.greeting-banner p {
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+.location-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--cream);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--rust);
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.18s;
+  width: 100%;
+  margin-bottom: 16px;
+}
+.location-btn:active { background: var(--border); }
+
+.spinner {
+  display: inline-block;
+  width: 20px; height: 20px;
+  border: 2px solid var(--border);
+  border-top-color: var(--rust);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--light);
+}
+.empty-state .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+.empty-state p { font-size: 0.95rem; }
+
+/* ============================================================
+   RESTAURANT PROFILE
+   ============================================================ */
+.profile-hero {
+  background: linear-gradient(135deg, var(--rust) 0%, var(--rust-lt) 100%);
+  color: #fff;
+  border-radius: var(--radius);
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 20px rgba(200,80,42,0.3);
+  text-align: center;
+}
+.profile-hero h2 {
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  margin-bottom: 4px;
+}
+.profile-hero .visit-count {
+  font-size: 0.95rem;
+  opacity: 0.85;
+}
+.profile-hero .big-num {
+  font-family: var(--font-display);
+  font-size: 3.5rem;
+  font-weight: 700;
+  line-height: 1.1;
+  display: block;
+  margin: 8px 0;
+}
+
+.visit-history-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  background: var(--card-bg);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  margin-bottom: 10px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.12s;
+}
+.visit-history-item:active { transform: scale(0.98); }
+
+.visit-date-pill {
+  background: var(--cream);
+  border-radius: 8px;
+  padding: 8px 10px;
+  text-align: center;
+  flex-shrink: 0;
+  min-width: 54px;
+}
+.visit-date-pill .day {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--rust);
+  line-height: 1;
+  display: block;
+}
+.visit-date-pill .mon {
+  font-size: 0.72rem;
+  color: var(--light);
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.visit-summary { flex: 1; min-width: 0; }
+.visit-summary .server-name {
+  font-size: 0.82rem;
+  color: var(--light);
+  margin-bottom: 3px;
+}
+.visit-summary .order-preview {
+  font-size: 0.9rem;
+  color: var(--mid);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.visit-photo-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   LOG VISIT FORM
+   ============================================================ */
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+.photo-slot {
+  aspect-ratio: 1;
+  border-radius: 10px;
+  border: 2px dashed var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  cursor: pointer;
+  overflow: hidden;
+  background: var(--cream);
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+.photo-slot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.photo-slot .remove-photo {
+  position: absolute;
+  top: 3px; right: 3px;
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 20px; height: 20px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.timestamp-display {
+  background: var(--cream);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  font-size: 0.9rem;
+  color: var(--mid);
+  border: 1px solid var(--border);
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ============================================================
+   ALL RESTAURANTS
+   ============================================================ */
+.search-bar {
+  position: relative;
+  margin-bottom: 16px;
+}
+.search-bar input {
+  width: 100%;
+  padding: 14px 16px 14px 44px;
+  border: 2px solid var(--border);
+  border-radius: 50px;
+  background: var(--card-bg);
+  font-size: 1rem;
+  outline: none;
+  color: var(--charcoal);
+  -webkit-appearance: none;
+}
+.search-bar input:focus { border-color: var(--rust); }
+.search-bar .search-icon {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.1rem;
+  color: var(--light);
+  pointer-events: none;
+}
+
+/* ============================================================
+   VISIT DETAIL
+   ============================================================ */
+.detail-section {
+  margin-bottom: 20px;
+}
+.detail-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+.detail-value {
+  font-size: 1rem;
+  color: var(--charcoal);
+  line-height: 1.5;
+}
+
+.detail-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.detail-photo-grid img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}
+
+/* ============================================================
+   MANUAL ADD MODAL
+   ============================================================ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(44,36,22,0.55);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 16px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+.modal-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+}
+.modal-box {
+  background: var(--card-bg);
+  border-radius: 24px 24px 20px 20px;
+  padding: 28px 24px 32px;
+  width: 100%;
+  max-width: 500px;
+  transform: translateY(40px);
+  transition: transform 0.25s;
+}
+.modal-overlay.open .modal-box { transform: translateY(0); }
+.modal-title {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  color: var(--charcoal);
+  margin-bottom: 20px;
+}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+.toast {
+  position: fixed;
+  bottom: calc(var(--tab-h) + 16px + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--charcoal);
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 50px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  z-index: 500;
+  white-space: nowrap;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* ============================================================
+   LOADING OVERLAY
+   ============================================================ */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(253,246,236,0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  gap: 16px;
+  font-size: 1rem;
+  color: var(--mid);
+  font-weight: 700;
+}
+.loading-overlay .big-spinner {
+  width: 48px; height: 48px;
+  border: 4px solid var(--border);
+  border-top-color: var(--rust);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* ============================================================
+   RESPONSIVE / DESKTOP
+   ============================================================ */
+@media (min-width: 700px) {
+  .tab-bar { justify-content: center; gap: 0; }
+  .tab-item { max-width: 120px; }
+  .app-header { padding: 0 24px; }
+  .photo-grid { grid-template-columns: repeat(4, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     LOADING OVERLAY
+     ============================================================ -->
+<div class="loading-overlay" id="loading-overlay">
+  <div class="big-spinner"></div>
+  <span>Loading Dine Journal…</span>
+</div>
+
+<!-- ============================================================
+     AUTH SCREEN
+     ============================================================ -->
+<div id="screen-auth" class="screen">
+  <div class="auth-logo">
+    <div class="icon">🍽️</div>
+    <h1>Dine Journal</h1>
+    <p>Your personal restaurant diary</p>
+  </div>
+
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuthTab('login')">Sign In</button>
+      <button class="auth-tab" onclick="switchAuthTab('signup')">Create Account</button>
+    </div>
+
+    <div id="auth-error" class="auth-error"></div>
+
+    <!-- Login -->
+    <div id="auth-login-form">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email" />
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" />
+      </div>
+      <button class="btn btn-primary" onclick="doLogin()">Sign In</button>
+    </div>
+
+    <!-- Sign Up -->
+    <div id="auth-signup-form" class="hidden">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="signup-email" placeholder="you@example.com" autocomplete="email" />
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="signup-password" placeholder="At least 6 characters" autocomplete="new-password" />
+      </div>
+      <button class="btn btn-primary" onclick="doSignup()">Create Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     APP SHELL
+     ============================================================ -->
+<div id="app-shell">
+
+  <!-- Header -->
+  <header class="app-header">
+    <button class="header-back hidden" id="header-back" onclick="goBack()">‹ Back</button>
+    <span class="header-title" id="header-title">🍽️ Dine Journal</span>
+    <button class="header-action" id="header-signout" onclick="doSignOut()" title="Sign Out">⚙️</button>
+  </header>
+
+  <!-- ── HOME ── -->
+  <div id="screen-home" class="screen active" style="padding-top:0;">
+    <div class="page-content">
+      <div class="greeting-banner">
+        <h2 id="greeting-text">Good evening! 👋</h2>
+        <p>Where have you eaten lately?</p>
+      </div>
+
+      <button class="location-btn" onclick="findNearby()">
+        <span>📍</span>
+        <span id="location-btn-text">Find Nearby Restaurants</span>
+      </button>
+
+      <div id="nearby-list"></div>
+
+      <div class="section-title">
+        <span>My Restaurants</span>
+        <button class="btn-ghost btn" onclick="showManualAdd()">+ Add</button>
+      </div>
+      <div id="my-restaurants-home"></div>
+    </div>
+  </div>
+
+  <!-- ── ALL RESTAURANTS ── -->
+  <div id="screen-all" class="screen">
+    <div class="page-content">
+      <div class="search-bar">
+        <span class="search-icon">🔍</span>
+        <input type="search" id="search-input" placeholder="Search restaurants…" oninput="filterRestaurants()" />
+      </div>
+      <div id="all-restaurants-list"></div>
+    </div>
+  </div>
+
+  <!-- ── RESTAURANT PROFILE ── -->
+  <div id="screen-profile" class="screen">
+    <div class="page-content">
+      <div class="profile-hero" id="profile-hero">
+        <h2 id="profile-name">—</h2>
+        <div>Total Visits</div>
+        <span class="big-num" id="profile-count">0</span>
+      </div>
+      <button class="btn btn-primary" style="margin-bottom:20px;" onclick="showLogVisit()">+ Log New Visit</button>
+      <div class="section-title">Visit History</div>
+      <div id="profile-visits"></div>
+    </div>
+  </div>
+
+  <!-- ── LOG VISIT ── -->
+  <div id="screen-log" class="screen">
+    <div class="page-content">
+      <div class="timestamp-display">
+        <span>🕐</span>
+        <span id="log-timestamp">—</span>
+      </div>
+
+      <div class="form-group">
+        <label>Mom's Order</label>
+        <textarea id="log-mom" placeholder="What did Mom have?"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Dad's Order</label>
+        <textarea id="log-dad" placeholder="What did Dad have?"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Server's Name</label>
+        <input type="text" id="log-server" placeholder="e.g. Maria" />
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="log-notes" placeholder="How was it? Anything to remember?"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Photos (up to 4)</label>
+        <div class="photo-grid" id="photo-grid">
+          <div class="photo-slot" onclick="triggerPhoto(0)">📷</div>
+          <div class="photo-slot" onclick="triggerPhoto(1)">📷</div>
+          <div class="photo-slot" onclick="triggerPhoto(2)">📷</div>
+          <div class="photo-slot" onclick="triggerPhoto(3)">📷</div>
+        </div>
+        <!-- Hidden file inputs -->
+        <input type="file" id="photo-input-0" accept="image/*" class="hidden" onchange="handlePhoto(0,this)" />
+        <input type="file" id="photo-input-1" accept="image/*" class="hidden" onchange="handlePhoto(1,this)" />
+        <input type="file" id="photo-input-2" accept="image/*" class="hidden" onchange="handlePhoto(2,this)" />
+        <input type="file" id="photo-input-3" accept="image/*" class="hidden" onchange="handlePhoto(3,this)" />
+      </div>
+
+      <button class="btn btn-primary" onclick="saveVisit()">💾 Save Visit</button>
+    </div>
+  </div>
+
+  <!-- ── VISIT DETAIL ── -->
+  <div id="screen-detail" class="screen">
+    <div class="page-content">
+      <div class="card">
+        <div class="detail-section">
+          <div class="detail-label">📅 Date &amp; Time</div>
+          <div class="detail-value" id="detail-date">—</div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">🙋 Server</div>
+          <div class="detail-value" id="detail-server">—</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="detail-section">
+          <div class="detail-label">👩 Mom's Order</div>
+          <div class="detail-value" id="detail-mom">—</div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">👨 Dad's Order</div>
+          <div class="detail-value" id="detail-dad">—</div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">📝 Notes</div>
+          <div class="detail-value" id="detail-notes">—</div>
+        </div>
+      </div>
+      <div id="detail-photos" class="detail-photo-grid card"></div>
+    </div>
+  </div>
+
+  <!-- Bottom Tab Bar -->
+  <nav class="tab-bar">
+    <button class="tab-item active" id="tab-home" onclick="showTab('home')">
+      <span class="tab-icon">🏠</span>Home
+    </button>
+    <button class="tab-item" id="tab-all" onclick="showTab('all')">
+      <span class="tab-icon">📋</span>All
+    </button>
+  </nav>
+</div>
+
+<!-- ============================================================
+     MANUAL ADD MODAL
+     ============================================================ -->
+<div class="modal-overlay" id="modal-add" onclick="closeModal(event)">
+  <div class="modal-box">
+    <div class="modal-title">Add a Restaurant</div>
+    <div class="form-group">
+      <label>Restaurant Name</label>
+      <input type="text" id="manual-name" placeholder="e.g. Joe's Diner" />
+    </div>
+    <div class="form-group">
+      <label>Address (optional)</label>
+      <input type="text" id="manual-address" placeholder="e.g. 123 Main St" />
+    </div>
+    <button class="btn btn-primary" onclick="saveManualRestaurant()" style="margin-bottom:10px;">Add Restaurant</button>
+    <button class="btn btn-secondary" onclick="closeAddModal()">Cancel</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ============================================================
+     FIREBASE SDKs  (v9 compat)
+     ============================================================ -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+
+<script>
+/* ============================================================
+   🔑  FIREBASE CONFIG — paste your values here
+   ============================================================ */
+const FIREBASE_CONFIG = {
+  apiKey:            "YOUR_FIREBASE_API_KEY",
+  authDomain:        "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId:         "YOUR_PROJECT_ID",
+  storageBucket:     "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId:             "YOUR_APP_ID"
+};
+
+/* ============================================================
+   🔑  GOOGLE PLACES API KEY — paste your key here
+   (Enable "Places API" and "Maps JavaScript API" in Google Cloud Console)
+   ============================================================ */
+const GOOGLE_PLACES_API_KEY = "AIzaSyAkpuaOxSyJjoN6cJ5cgPFTkKNs3F_Kv8s";
+
+/* ============================================================
+   FIREBASE INIT
+   ============================================================ */
+firebase.initializeApp(const firebaseConfig = {
+apiKey: "AIzaSyApRpUJrxS7ZDcyIFLrq-jRaw3rum3pSQk",
+authDomain: "dinedthere.firebaseapp.com",
+projectId: "dinedthere",
+storageBucket: "dinedthere.firebasestorage.app",
+messagingSenderId: "519586841758",
+appId: "1:519586841758:web:d37f08aed2cb4faf3ce78f"
+};);
+const auth      = firebase.auth();
+const db        = firebase.firestore();
+const storage   = firebase.storage();
+
+// Enable offline persistence (Firestore caching)
+db.enablePersistence({ synchronizeTabs: true })
+  .catch(err => console.warn("Persistence unavailable:", err.code));
+
+/* ============================================================
+   APP STATE
+   ============================================================ */
+let currentUser     = null;
+let currentRestaurant = null; // { id, name, address }
+let currentVisit    = null;   // for detail view
+let photoFiles      = [null, null, null, null]; // File objects
+let photoDataURLs   = [null, null, null, null]; // Preview URLs
+let navStack        = [];     // screen navigation history
+let allRestaurants  = [];     // cached list
+
+/* ============================================================
+   FIREBASE AUTH OBSERVER
+   ============================================================ */
+auth.onAuthStateChanged(user => {
+  document.getElementById('loading-overlay').style.display = 'none';
+  if (user) {
+    currentUser = user;
+    showApp();
+  } else {
+    currentUser = null;
+    showAuth();
+  }
+});
+
+/* ============================================================
+   AUTH FUNCTIONS
+   ============================================================ */
+function switchAuthTab(tab) {
+  document.getElementById('auth-error').textContent = '';
+  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+  if (tab === 'login') {
+    document.querySelectorAll('.auth-tab')[0].classList.add('active');
+    document.getElementById('auth-login-form').classList.remove('hidden');
+    document.getElementById('auth-signup-form').classList.add('hidden');
+  } else {
+    document.querySelectorAll('.auth-tab')[1].classList.add('active');
+    document.getElementById('auth-login-form').classList.add('hidden');
+    document.getElementById('auth-signup-form').classList.remove('hidden');
+  }
+}
+
+async function doLogin() {
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  setAuthError('');
+  if (!email || !password) return setAuthError('Please enter email and password.');
+  try {
+    await auth.signInWithEmailAndPassword(email, password);
+  } catch (e) {
+    setAuthError(friendlyAuthError(e));
+  }
+}
+
+async function doSignup() {
+  const email    = document.getElementById('signup-email').value.trim();
+  const password = document.getElementById('signup-password').value;
+  setAuthError('');
+  if (!email || !password) return setAuthError('Please fill in all fields.');
+  if (password.length < 6) return setAuthError('Password must be at least 6 characters.');
+  try {
+    await auth.createUserWithEmailAndPassword(email, password);
+  } catch (e) {
+    setAuthError(friendlyAuthError(e));
+  }
+}
+
+async function doSignOut() {
+  if (!confirm('Sign out of Dine Journal?')) return;
+  await auth.signOut();
+}
+
+function friendlyAuthError(e) {
+  if (e.code === 'auth/user-not-found' || e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') return 'Email or password incorrect.';
+  if (e.code === 'auth/email-already-in-use') return 'That email is already registered.';
+  if (e.code === 'auth/invalid-email') return 'Invalid email address.';
+  if (e.code === 'auth/network-request-failed') return 'Network error. Check your connection.';
+  return e.message;
+}
+
+function setAuthError(msg) {
+  document.getElementById('auth-error').textContent = msg;
+}
+
+/* ============================================================
+   SHOW / HIDE AUTH vs APP
+   ============================================================ */
+function showAuth() {
+  document.getElementById('screen-auth').classList.add('active');
+  document.getElementById('app-shell').classList.remove('visible');
+}
+
+function showApp() {
+  document.getElementById('screen-auth').classList.remove('active');
+  document.getElementById('app-shell').classList.add('visible');
+  setGreeting();
+  showTab('home');
+  loadMyRestaurants();
+}
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+function showTab(tab) {
+  // Reset nav stack on tab switch
+  navStack = [];
+  document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+
+  deactivateAllScreens();
+  document.getElementById('screen-' + tab).classList.add('active');
+  setHeader(tab === 'home' ? '🍽️ Dine Journal' : 'All Restaurants', false);
+  document.getElementById('header-signout').classList.remove('hidden');
+
+  if (tab === 'all') renderAllRestaurants();
+}
+
+function navigateTo(screenId, title) {
+  navStack.push(getCurrentScreen());
+  deactivateAllScreens();
+  document.getElementById(screenId).classList.add('active');
+  setHeader(title, true);
+  document.getElementById('header-signout').classList.add('hidden');
+}
+
+function goBack() {
+  const prev = navStack.pop();
+  if (!prev) { showTab('home'); return; }
+  deactivateAllScreens();
+  document.getElementById(prev).classList.add('active');
+
+  // Restore header
+  if (navStack.length === 0) {
+    const isAll = prev === 'screen-all';
+    setHeader(isAll ? 'All Restaurants' : '🍽️ Dine Journal', false);
+    document.getElementById('header-signout').classList.remove('hidden');
+  } else {
+    const titles = {
+      'screen-profile': currentRestaurant ? currentRestaurant.name : 'Restaurant',
+      'screen-log':     'Log Visit',
+      'screen-detail':  'Visit Detail',
+    };
+    setHeader(titles[prev] || '', true);
+    document.getElementById('header-signout').classList.add('hidden');
+  }
+}
+
+function deactivateAllScreens() {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+}
+
+function getCurrentScreen() {
+  const s = document.querySelector('.screen.active');
+  return s ? s.id : 'screen-home';
+}
+
+function setHeader(title, showBack) {
+  document.getElementById('header-title').textContent = title;
+  const back = document.getElementById('header-back');
+  showBack ? back.classList.remove('hidden') : back.classList.add('hidden');
+}
+
+/* ============================================================
+   GREETING
+   ============================================================ */
+function setGreeting() {
+  const h = new Date().getHours();
+  const greet = h < 12 ? 'Good morning! 🌅' : h < 17 ? 'Good afternoon! ☀️' : 'Good evening! 🌙';
+  document.getElementById('greeting-text').textContent = greet;
+}
+
+/* ============================================================
+   LOAD MY RESTAURANTS (Firestore)
+   ============================================================ */
+async function loadMyRestaurants() {
+  const uid = currentUser.uid;
+  try {
+    const snap = await db.collection('restaurants')
+      .where('uid', '==', uid)
+      .orderBy('lastVisit', 'desc')
+      .get();
+
+    allRestaurants = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderHomeRestaurants();
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+function renderHomeRestaurants() {
+  const el = document.getElementById('my-restaurants-home');
+  if (allRestaurants.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">🍴</div><p>No restaurants yet.<br>Find nearby ones above or add manually!</p></div>`;
+    return;
+  }
+  el.innerHTML = allRestaurants.slice(0, 6).map(r => restaurantItemHTML(r)).join('');
+}
+
+function renderAllRestaurants() {
+  filterRestaurants();
+}
+
+function filterRestaurants() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const filtered = allRestaurants.filter(r =>
+    r.name.toLowerCase().includes(q) ||
+    (r.address || '').toLowerCase().includes(q)
+  );
+  const el = document.getElementById('all-restaurants-list');
+  if (filtered.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">🔍</div><p>No restaurants found.</p></div>`;
+    return;
+  }
+  el.innerHTML = filtered.map(r => restaurantItemHTML(r)).join('');
+}
+
+function restaurantItemHTML(r) {
+  const emoji = restaurantEmoji(r.name);
+  const badge = r.visitCount > 0 ? `<div class="visit-badge">${r.visitCount}</div>` : '';
+  const meta = r.address ? r.address : (r.lastVisit ? 'Last visit: ' + formatDate(r.lastVisit?.toDate ? r.lastVisit.toDate() : new Date(r.lastVisit)) : '');
+  return `<div class="restaurant-item" onclick="openRestaurant('${r.id}')">
+    <div class="restaurant-avatar">${emoji}${badge}</div>
+    <div class="restaurant-info">
+      <div class="restaurant-name">${escHtml(r.name)}</div>
+      <div class="restaurant-meta">${escHtml(meta)}</div>
+    </div>
+    <div class="restaurant-arrow">›</div>
+  </div>`;
+}
+
+function restaurantEmoji(name) {
+  const n = (name || '').toLowerCase();
+  if (/pizza|pie/.test(n)) return '🍕';
+  if (/sushi|japan|ramen/.test(n)) return '🍣';
+  if (/burger|grill/.test(n)) return '🍔';
+  if (/taco|mexican|burrito/.test(n)) return '🌮';
+  if (/chinese|wok|dim sum/.test(n)) return '🥡';
+  if (/italian|pasta/.test(n)) return '🍝';
+  if (/cafe|coffee|bakery/.test(n)) return '☕';
+  if (/bbq|barbecue/.test(n)) return '🥩';
+  if (/seafood|fish|shrimp/.test(n)) return '🦞';
+  if (/thai/.test(n)) return '🍜';
+  return '🍽️';
+}
+
+/* ============================================================
+   NEARBY RESTAURANTS (Google Places)
+   ============================================================ */
+function findNearby() {
+  const btn = document.getElementById('location-btn-text');
+  btn.innerHTML = '<span class="spinner"></span> Locating…';
+  document.getElementById('nearby-list').innerHTML = '';
+
+  if (!navigator.geolocation) {
+    btn.textContent = 'Geolocation not supported';
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      btn.textContent = '📍 Nearby Restaurants';
+      fetchNearbyPlaces(pos.coords.latitude, pos.coords.longitude);
+    },
+    err => {
+      btn.textContent = '📍 Find Nearby Restaurants';
+      showToast('Location access denied.');
+    }
+  );
+}
+
+async function fetchNearbyPlaces(lat, lng) {
+  /*
+   * NOTE: The Google Places Nearby Search endpoint requires a backend proxy
+   * for production use (to protect your API key). For a quick local test you
+   * can use the direct URL below, but set HTTP referrer restrictions in the
+   * Google Cloud Console to your domain.
+   *
+   * Replace GOOGLE_PLACES_API_KEY at the top of this file.
+   */
+  const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=1500&type=restaurant&key=${GOOGLE_PLACES_API_KEY}`;
+
+  const nearby = document.getElementById('nearby-list');
+  nearby.innerHTML = `<div class="empty-state"><div class="spinner"></div></div>`;
+
+  try {
+    const res  = await fetch(url);
+    const data = await res.json();
+
+    if (!data.results || data.results.length === 0) {
+      nearby.innerHTML = `<div class="empty-state"><div class="empty-icon">🗺️</div><p>No restaurants found nearby.</p></div>`;
+      return;
+    }
+
+    const places = data.results.slice(0, 8);
+    // Check which ones we already have logged
+    const myNames = new Set(allRestaurants.map(r => r.name.toLowerCase()));
+
+    nearby.innerHTML = `<div class="section-title" style="margin-top:0;">Nearby Now</div>` +
+      places.map(p => {
+        const known = allRestaurants.find(r => r.name.toLowerCase() === p.name.toLowerCase());
+        const badge = known && known.visitCount > 0 ? `<div class="visit-badge">${known.visitCount}</div>` : '';
+        return `<div class="restaurant-item" onclick="openNearbyPlace('${escAttr(p.place_id)}','${escAttr(p.name)}','${escAttr(p.vicinity || '')}')">
+          <div class="restaurant-avatar">${restaurantEmoji(p.name)}${badge}</div>
+          <div class="restaurant-info">
+            <div class="restaurant-name">${escHtml(p.name)}</div>
+            <div class="restaurant-meta">${escHtml(p.vicinity || '')}</div>
+          </div>
+          <div class="restaurant-arrow">›</div>
+        </div>`;
+      }).join('');
+
+  } catch(e) {
+    nearby.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>Could not load nearby places.<br>Check your API key.</p></div>`;
+    console.error(e);
+  }
+}
+
+async function openNearbyPlace(placeId, name, address) {
+  // Check if already in our DB
+  const existing = allRestaurants.find(r =>
+    r.name.toLowerCase() === name.toLowerCase() ||
+    r.googlePlaceId === placeId
+  );
+  if (existing) {
+    openRestaurant(existing.id);
+    return;
+  }
+  // Create a new restaurant doc
+  const docRef = await db.collection('restaurants').add({
+    uid: currentUser.uid,
+    name,
+    address,
+    googlePlaceId: placeId,
+    visitCount: 0,
+    lastVisit: null,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+  allRestaurants.push({ id: docRef.id, name, address, googlePlaceId: placeId, visitCount: 0, lastVisit: null });
+  openRestaurant(docRef.id);
+}
+
+/* ============================================================
+   RESTAURANT PROFILE
+   ============================================================ */
+async function openRestaurant(restaurantId) {
+  currentRestaurant = allRestaurants.find(r => r.id === restaurantId);
+  if (!currentRestaurant) return;
+
+  document.getElementById('profile-name').textContent = currentRestaurant.name;
+  document.getElementById('profile-count').textContent = currentRestaurant.visitCount || 0;
+
+  navigateTo('screen-profile', currentRestaurant.name);
+  await loadVisitHistory();
+}
+
+async function loadVisitHistory() {
+  const el = document.getElementById('profile-visits');
+  el.innerHTML = `<div class="empty-state"><div class="spinner"></div></div>`;
+
+  const snap = await db.collection('visits')
+    .where('uid', '==', currentUser.uid)
+    .where('restaurantId', '==', currentRestaurant.id)
+    .orderBy('timestamp', 'desc')
+    .get();
+
+  const visits = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  if (visits.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📝</div><p>No visits yet. Tap "Log New Visit" to start!</p></div>`;
+    return;
+  }
+
+  el.innerHTML = visits.map(v => {
+    const ts  = v.timestamp?.toDate ? v.timestamp.toDate() : new Date(v.timestamp);
+    const day = ts.getDate();
+    const mon = ts.toLocaleString('default', { month: 'short' });
+    const thumb = v.photoURLs && v.photoURLs[0]
+      ? `<img class="visit-photo-thumb" src="${v.photoURLs[0]}" alt="photo" />`
+      : '';
+    const orderPrev = [v.momOrder, v.dadOrder].filter(Boolean).join(' · ') || 'No orders recorded';
+    return `<div class="visit-history-item" onclick="openVisitDetail('${v.id}')">
+      <div class="visit-date-pill">
+        <span class="day">${day}</span>
+        <span class="mon">${mon}</span>
+      </div>
+      <div class="visit-summary">
+        <div class="server-name">${v.serverName ? '🙋 ' + escHtml(v.serverName) : 'Server not recorded'}</div>
+        <div class="order-preview">${escHtml(orderPrev)}</div>
+      </div>
+      ${thumb}
+    </div>`;
+  }).join('');
+}
+
+/* ============================================================
+   LOG VISIT
+   ============================================================ */
+function showLogVisit() {
+  // Reset form
+  document.getElementById('log-mom').value    = '';
+  document.getElementById('log-dad').value    = '';
+  document.getElementById('log-server').value = '';
+  document.getElementById('log-notes').value  = '';
+  photoFiles    = [null, null, null, null];
+  photoDataURLs = [null, null, null, null];
+  resetPhotoGrid();
+
+  const now = new Date();
+  document.getElementById('log-timestamp').textContent = now.toLocaleString();
+  navigateTo('screen-log', 'Log a Visit');
+}
+
+function triggerPhoto(idx) {
+  document.getElementById(`photo-input-${idx}`).click();
+}
+
+function handlePhoto(idx, input) {
+  const file = input.files[0];
+  if (!file) return;
+  photoFiles[idx] = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    photoDataURLs[idx] = e.target.result;
+    renderPhotoSlot(idx, e.target.result);
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderPhotoSlot(idx, dataURL) {
+  const slot = document.getElementById('photo-grid').children[idx];
+  slot.innerHTML = `<img src="${dataURL}" alt="Photo ${idx+1}" /><button class="remove-photo" onclick="removePhoto(event,${idx})">×</button>`;
+}
+
+function removePhoto(event, idx) {
+  event.stopPropagation();
+  photoFiles[idx]    = null;
+  photoDataURLs[idx] = null;
+  const slot = document.getElementById('photo-grid').children[idx];
+  slot.innerHTML = '📷';
+  slot.onclick = () => triggerPhoto(idx);
+  document.getElementById(`photo-input-${idx}`).value = '';
+}
+
+function resetPhotoGrid() {
+  const grid = document.getElementById('photo-grid');
+  for (let i = 0; i < 4; i++) {
+    const slot = grid.children[i];
+    slot.innerHTML = '📷';
+    slot.onclick = () => triggerPhoto(i);
+    document.getElementById(`photo-input-${i}`).value = '';
+  }
+}
+
+async function saveVisit() {
+  if (!currentRestaurant) return;
+  showToast('Saving…');
+
+  const timestamp = firebase.firestore.FieldValue.serverTimestamp();
+  const momOrder  = document.getElementById('log-mom').value.trim();
+  const dadOrder  = document.getElementById('log-dad').value.trim();
+  const serverName= document.getElementById('log-server').value.trim();
+  const notes     = document.getElementById('log-notes').value.trim();
+
+  // Upload photos to Firebase Storage
+  let photoURLs = [];
+  for (let i = 0; i < 4; i++) {
+    if (photoFiles[i]) {
+      try {
+        const ref = storage.ref()
+          .child(`users/${currentUser.uid}/visits/${Date.now()}_${i}_${photoFiles[i].name}`);
+        const snap = await ref.put(photoFiles[i]);
+        const url  = await snap.ref.getDownloadURL();
+        photoURLs.push(url);
+      } catch(e) {
+        console.error('Photo upload failed', e);
+      }
+    }
+  }
+
+  // Save visit doc
+  await db.collection('visits').add({
+    uid:          currentUser.uid,
+    restaurantId: currentRestaurant.id,
+    restaurantName: currentRestaurant.name,
+    timestamp,
+    momOrder,
+    dadOrder,
+    serverName,
+    notes,
+    photoURLs
+  });
+
+  // Update restaurant doc
+  const newCount = (currentRestaurant.visitCount || 0) + 1;
+  await db.collection('restaurants').doc(currentRestaurant.id).update({
+    visitCount: newCount,
+    lastVisit:  timestamp
+  });
+
+  // Update local cache
+  currentRestaurant.visitCount = newCount;
+  const idx = allRestaurants.findIndex(r => r.id === currentRestaurant.id);
+  if (idx !== -1) allRestaurants[idx].visitCount = newCount;
+
+  showToast('Visit saved! ✅');
+  setTimeout(() => {
+    goBack(); // back to profile
+    loadVisitHistory();
+    document.getElementById('profile-count').textContent = newCount;
+    renderHomeRestaurants();
+  }, 600);
+}
+
+/* ============================================================
+   VISIT DETAIL
+   ============================================================ */
+async function openVisitDetail(visitId) {
+  navigateTo('screen-detail', 'Visit Detail');
+
+  const snap = await db.collection('visits').doc(visitId).get();
+  if (!snap.exists) { showToast('Visit not found.'); goBack(); return; }
+  const v = snap.data();
+  const ts = v.timestamp?.toDate ? v.timestamp.toDate() : new Date();
+
+  document.getElementById('detail-date').textContent   = ts.toLocaleString('en-US', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  });
+  document.getElementById('detail-server').textContent = v.serverName || '—';
+  document.getElementById('detail-mom').textContent    = v.momOrder   || '—';
+  document.getElementById('detail-dad').textContent    = v.dadOrder   || '—';
+  document.getElementById('detail-notes').textContent  = v.notes      || '—';
+
+  const photosEl = document.getElementById('detail-photos');
+  if (v.photoURLs && v.photoURLs.length > 0) {
+    photosEl.classList.remove('hidden');
+    photosEl.innerHTML = v.photoURLs.map(url =>
+      `<img src="${url}" alt="Visit photo" loading="lazy" />`
+    ).join('');
+  } else {
+    photosEl.classList.add('hidden');
+    photosEl.innerHTML = '';
+  }
+}
+
+/* ============================================================
+   MANUAL ADD RESTAURANT
+   ============================================================ */
+function showManualAdd() {
+  document.getElementById('manual-name').value    = '';
+  document.getElementById('manual-address').value = '';
+  document.getElementById('modal-add').classList.add('open');
+}
+
+function closeAddModal() {
+  document.getElementById('modal-add').classList.remove('open');
+}
+
+function closeModal(event) {
+  if (event.target === document.getElementById('modal-add')) closeAddModal();
+}
+
+async function saveManualRestaurant() {
+  const name    = document.getElementById('manual-name').value.trim();
+  const address = document.getElementById('manual-address').value.trim();
+  if (!name) { showToast('Please enter a restaurant name.'); return; }
+
+  const docRef = await db.collection('restaurants').add({
+    uid: currentUser.uid,
+    name,
+    address,
+    visitCount: 0,
+    lastVisit:  null,
+    createdAt:  firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  const newR = { id: docRef.id, name, address, visitCount: 0, lastVisit: null };
+  allRestaurants.unshift(newR);
+  closeAddModal();
+  renderHomeRestaurants();
+  showToast('Restaurant added!');
+}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+function escHtml(str) {
+  return String(str || '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escAttr(str) {
+  return String(str || '').replace(/'/g,'&#39;').replace(/"/g,'&quot;');
+}
+
+function formatDate(d) {
+  if (!d) return '';
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+/* ============================================================
+   INIT — screen shown by auth observer
+   ============================================================ */
+</script>
+</body>
+</html>
