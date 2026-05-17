@@ -1011,12 +1011,12 @@ input, button, textarea, select {
    🔑  FIREBASE CONFIG — paste your values here
    ============================================================ */
 const FIREBASE_CONFIG = {
-  apiKey:            "YOUR_FIREBASE_API_KEY",
-  authDomain:        "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId:         "YOUR_PROJECT_ID",
-  storageBucket:     "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId:             "YOUR_APP_ID"
+  apiKey:            "AIzaSyApRpUJrxS7ZDcyIFLrq-jRaw3rum3pSQk",
+  authDomain:        "dinedthere.firebaseapp.com",
+  projectId:         "dinedthere",
+  storageBucket:     "dinedthere.firebasestorage.app",
+  messagingSenderId: "519586841758",
+  appId:             "1:519586841758:web:d37f08aed2cb4faf3ce78f"
 };
 
 /* ============================================================
@@ -1028,14 +1028,7 @@ const GOOGLE_PLACES_API_KEY = "AIzaSyAkpuaOxSyJjoN6cJ5cgPFTkKNs3F_Kv8s";
 /* ============================================================
    FIREBASE INIT
    ============================================================ */
-firebase.initializeApp(const firebaseConfig = {
-apiKey: "AIzaSyApRpUJrxS7ZDcyIFLrq-jRaw3rum3pSQk",
-authDomain: "dinedthere.firebaseapp.com",
-projectId: "dinedthere",
-storageBucket: "dinedthere.firebasestorage.app",
-messagingSenderId: "519586841758",
-appId: "1:519586841758:web:d37f08aed2cb4faf3ce78f"
-};);
+firebase.initializeApp(FIREBASE_CONFIG);
 const auth      = firebase.auth();
 const db        = firebase.firestore();
 const storage   = firebase.storage();
@@ -1221,15 +1214,26 @@ function setGreeting() {
 async function loadMyRestaurants() {
   const uid = currentUser.uid;
   try {
+    // Simple query — no composite index required.
+    // We sort client-side so null lastVisit values never cause issues.
     const snap = await db.collection('restaurants')
       .where('uid', '==', uid)
-      .orderBy('lastVisit', 'desc')
       .get();
 
     allRestaurants = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Sort: restaurants with visits (lastVisit set) first, then by date desc
+    allRestaurants.sort((a, b) => {
+      const ta = a.lastVisit ? (a.lastVisit.toDate ? a.lastVisit.toDate().getTime() : new Date(a.lastVisit).getTime()) : 0;
+      const tb = b.lastVisit ? (b.lastVisit.toDate ? b.lastVisit.toDate().getTime() : new Date(b.lastVisit).getTime()) : 0;
+      return tb - ta;
+    });
+
     renderHomeRestaurants();
   } catch(e) {
-    console.error(e);
+    console.error('loadMyRestaurants error:', e);
+    document.getElementById('my-restaurants-home').innerHTML =
+      '<div class="empty-state"><div class="empty-icon">⚠️</div><p>Could not load restaurants.<br>Check your internet connection.</p></div>';
   }
 }
 
@@ -1508,62 +1512,74 @@ function resetPhotoGrid() {
 
 async function saveVisit() {
   if (!currentRestaurant) return;
+
+  const saveBtn = document.querySelector('#screen-log .btn-primary');
+  const origText = saveBtn.textContent;
+  saveBtn.textContent = 'Saving…';
+  saveBtn.disabled = true;
   showToast('Saving…');
 
-  const timestamp = firebase.firestore.FieldValue.serverTimestamp();
-  const momOrder  = document.getElementById('log-mom').value.trim();
-  const dadOrder  = document.getElementById('log-dad').value.trim();
-  const serverName= document.getElementById('log-server').value.trim();
-  const notes     = document.getElementById('log-notes').value.trim();
+  try {
+    const timestamp  = firebase.firestore.FieldValue.serverTimestamp();
+    const momOrder   = document.getElementById('log-mom').value.trim();
+    const dadOrder   = document.getElementById('log-dad').value.trim();
+    const serverName = document.getElementById('log-server').value.trim();
+    const notes      = document.getElementById('log-notes').value.trim();
 
-  // Upload photos to Firebase Storage
-  let photoURLs = [];
-  for (let i = 0; i < 4; i++) {
-    if (photoFiles[i]) {
-      try {
-        const ref = storage.ref()
-          .child(`users/${currentUser.uid}/visits/${Date.now()}_${i}_${photoFiles[i].name}`);
-        const snap = await ref.put(photoFiles[i]);
-        const url  = await snap.ref.getDownloadURL();
-        photoURLs.push(url);
-      } catch(e) {
-        console.error('Photo upload failed', e);
+    // Upload photos to Firebase Storage
+    let photoURLs = [];
+    for (let i = 0; i < 4; i++) {
+      if (photoFiles[i]) {
+        try {
+          const ref  = storage.ref().child(`users/${currentUser.uid}/visits/${Date.now()}_${i}_${photoFiles[i].name}`);
+          const snap = await ref.put(photoFiles[i]);
+          const url  = await snap.ref.getDownloadURL();
+          photoURLs.push(url);
+        } catch(photoErr) {
+          console.error('Photo upload failed', photoErr);
+        }
       }
     }
+
+    // Save visit doc
+    await db.collection('visits').add({
+      uid:            currentUser.uid,
+      restaurantId:   currentRestaurant.id,
+      restaurantName: currentRestaurant.name,
+      timestamp,
+      momOrder,
+      dadOrder,
+      serverName,
+      notes,
+      photoURLs
+    });
+
+    // Update restaurant doc
+    const newCount = (currentRestaurant.visitCount || 0) + 1;
+    await db.collection('restaurants').doc(currentRestaurant.id).update({
+      visitCount: newCount,
+      lastVisit:  timestamp
+    });
+
+    // Update local cache
+    currentRestaurant.visitCount = newCount;
+    const idx = allRestaurants.findIndex(r => r.id === currentRestaurant.id);
+    if (idx !== -1) allRestaurants[idx].visitCount = newCount;
+
+    showToast('Visit saved! ✅');
+    setTimeout(() => {
+      goBack();
+      loadVisitHistory();
+      document.getElementById('profile-count').textContent = newCount;
+      renderHomeRestaurants();
+    }, 600);
+
+  } catch(e) {
+    console.error('saveVisit error:', e);
+    showToast('Error saving visit — please try again.');
+    saveBtn.textContent = origText;
+    saveBtn.disabled = false;
   }
-
-  // Save visit doc
-  await db.collection('visits').add({
-    uid:          currentUser.uid,
-    restaurantId: currentRestaurant.id,
-    restaurantName: currentRestaurant.name,
-    timestamp,
-    momOrder,
-    dadOrder,
-    serverName,
-    notes,
-    photoURLs
-  });
-
-  // Update restaurant doc
-  const newCount = (currentRestaurant.visitCount || 0) + 1;
-  await db.collection('restaurants').doc(currentRestaurant.id).update({
-    visitCount: newCount,
-    lastVisit:  timestamp
-  });
-
-  // Update local cache
-  currentRestaurant.visitCount = newCount;
-  const idx = allRestaurants.findIndex(r => r.id === currentRestaurant.id);
-  if (idx !== -1) allRestaurants[idx].visitCount = newCount;
-
-  showToast('Visit saved! ✅');
-  setTimeout(() => {
-    goBack(); // back to profile
-    loadVisitHistory();
-    document.getElementById('profile-count').textContent = newCount;
-    renderHomeRestaurants();
-  }, 600);
 }
 
 /* ============================================================
@@ -1620,20 +1636,33 @@ async function saveManualRestaurant() {
   const address = document.getElementById('manual-address').value.trim();
   if (!name) { showToast('Please enter a restaurant name.'); return; }
 
-  const docRef = await db.collection('restaurants').add({
-    uid: currentUser.uid,
-    name,
-    address,
-    visitCount: 0,
-    lastVisit:  null,
-    createdAt:  firebase.firestore.FieldValue.serverTimestamp()
-  });
+  const addBtn = document.querySelector('#modal-add .btn-primary');
+  const origText = addBtn.textContent;
+  addBtn.textContent = 'Saving…';
+  addBtn.disabled = true;
 
-  const newR = { id: docRef.id, name, address, visitCount: 0, lastVisit: null };
-  allRestaurants.unshift(newR);
-  closeAddModal();
-  renderHomeRestaurants();
-  showToast('Restaurant added!');
+  try {
+    const docRef = await db.collection('restaurants').add({
+      uid:       currentUser.uid,
+      name,
+      address,
+      visitCount: 0,
+      lastVisit:  null,
+      createdAt:  firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    const newR = { id: docRef.id, name, address, visitCount: 0, lastVisit: null };
+    allRestaurants.unshift(newR);
+    closeAddModal();
+    renderHomeRestaurants();
+    showToast('Restaurant added! 🎉');
+  } catch(e) {
+    console.error('saveManualRestaurant error:', e);
+    showToast('Error saving — check Firestore rules.');
+  } finally {
+    addBtn.textContent = origText;
+    addBtn.disabled = false;
+  }
 }
 
 /* ============================================================
