@@ -993,6 +993,12 @@ input, button, textarea, select {
 <div class="toast" id="toast"></div>
 
 <!-- ============================================================
+     GOOGLE MAPS JS SDK (browser-safe Places API)
+     ============================================================ -->
+<script>window.__mapsReady = false; function __onMapsLoad() { window.__mapsReady = true; }</script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAkpuaOxSyJjoN6cJ5cgPFTkKNs3F_Kv8s&libraries=places&callback=__onMapsLoad" async defer></script>
+
+<!-- ============================================================
      FIREBASE SDKs  (v9 compat)
      ============================================================ -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -1002,15 +1008,15 @@ input, button, textarea, select {
 
 <script>
 /* ============================================================
-   🔑  FIREBASE CONFIG — your project credentials
+   🔑  FIREBASE CONFIG — paste your values here
    ============================================================ */
 const FIREBASE_CONFIG = {
-  apiKey:            "AIzaSyApRpUJrxS7ZDcyIFLrq-jRaw3rum3pSQk",
-  authDomain:        "dinedthere.firebaseapp.com",
-  projectId:         "dinedthere",
-  storageBucket:     "dinedthere.firebasestorage.app",
-  messagingSenderId: "519586841758",
-  appId:             "1:519586841758:web:d37f08aed2cb4faf3ce78f"
+  apiKey:            "YOUR_FIREBASE_API_KEY",
+  authDomain:        "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId:         "YOUR_PROJECT_ID",
+  storageBucket:     "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId:             "YOUR_APP_ID"
 };
 
 /* ============================================================
@@ -1022,7 +1028,14 @@ const GOOGLE_PLACES_API_KEY = "AIzaSyAkpuaOxSyJjoN6cJ5cgPFTkKNs3F_Kv8s";
 /* ============================================================
    FIREBASE INIT
    ============================================================ */
-firebase.initializeApp(FIREBASE_CONFIG);
+firebase.initializeApp(const firebaseConfig = {
+apiKey: "AIzaSyApRpUJrxS7ZDcyIFLrq-jRaw3rum3pSQk",
+authDomain: "dinedthere.firebaseapp.com",
+projectId: "dinedthere",
+storageBucket: "dinedthere.firebasestorage.app",
+messagingSenderId: "519586841758",
+appId: "1:519586841758:web:d37f08aed2cb4faf3ce78f"
+};);
 const auth      = firebase.auth();
 const db        = firebase.firestore();
 const storage   = firebase.storage();
@@ -1301,51 +1314,60 @@ function findNearby() {
   );
 }
 
-async function fetchNearbyPlaces(lat, lng) {
-  /*
-   * NOTE: The Google Places Nearby Search endpoint requires a backend proxy
-   * for production use (to protect your API key). For a quick local test you
-   * can use the direct URL below, but set HTTP referrer restrictions in the
-   * Google Cloud Console to your domain.
-   *
-   * Replace GOOGLE_PLACES_API_KEY at the top of this file.
-   */
-  const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=1500&type=restaurant&key=${GOOGLE_PLACES_API_KEY}`;
-
+function fetchNearbyPlaces(lat, lng) {
+  // Uses Maps JS API PlacesService — the only CORS-safe browser approach.
+  // The &libraries=places script tag loaded above provides google.maps.places.
   const nearby = document.getElementById('nearby-list');
-  nearby.innerHTML = `<div class="empty-state"><div class="spinner"></div></div>`;
+  nearby.innerHTML = '<div class="empty-state"><div class="spinner"></div></div>';
 
-  try {
-    const res  = await fetch(url);
-    const data = await res.json();
-
-    if (!data.results || data.results.length === 0) {
-      nearby.innerHTML = `<div class="empty-state"><div class="empty-icon">🗺️</div><p>No restaurants found nearby.</p></div>`;
+  // Wait up to 4s for the async Maps SDK to finish loading
+  let waited = 0;
+  function trySearch() {
+    if (!window.__mapsReady || !window.google || !window.google.maps || !window.google.maps.places) {
+      if (waited >= 4000) {
+        nearby.innerHTML = '<div class="empty-state"><div class="empty-icon">&#x26A0;&#xFE0F;</div><p>Google Maps failed to load.<br>Make sure your API key has <strong>Maps JavaScript API</strong> and <strong>Places API</strong> enabled.</p></div>';
+        return;
+      }
+      waited += 200;
+      setTimeout(trySearch, 200);
       return;
     }
 
-    const places = data.results.slice(0, 8);
-    // Check which ones we already have logged
-    const myNames = new Set(allRestaurants.map(r => r.name.toLowerCase()));
+    // PlacesService needs a DOM node as its "map" anchor when no real map is shown
+    const mapDiv = document.createElement('div');
+    const service = new google.maps.places.PlacesService(mapDiv);
 
-    nearby.innerHTML = `<div class="section-title" style="margin-top:0;">Nearby Now</div>` +
-      places.map(p => {
-        const known = allRestaurants.find(r => r.name.toLowerCase() === p.name.toLowerCase());
-        const badge = known && known.visitCount > 0 ? `<div class="visit-badge">${known.visitCount}</div>` : '';
-        return `<div class="restaurant-item" onclick="openNearbyPlace('${escAttr(p.place_id)}','${escAttr(p.name)}','${escAttr(p.vicinity || '')}')">
-          <div class="restaurant-avatar">${restaurantEmoji(p.name)}${badge}</div>
-          <div class="restaurant-info">
-            <div class="restaurant-name">${escHtml(p.name)}</div>
-            <div class="restaurant-meta">${escHtml(p.vicinity || '')}</div>
-          </div>
-          <div class="restaurant-arrow">›</div>
-        </div>`;
-      }).join('');
+    service.nearbySearch({
+      location: new google.maps.LatLng(lat, lng),
+      radius: 1500,
+      type: 'restaurant'
+    }, function(results, status) {
+      if (status !== google.maps.places.PlacesServiceStatus.OK || !results || results.length === 0) {
+        nearby.innerHTML = '<div class="empty-state"><div class="empty-icon">&#x1F5FA;&#xFE0F;</div><p>No restaurants found nearby.</p></div>';
+        return;
+      }
 
-  } catch(e) {
-    nearby.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>Could not load nearby places.<br>Check your API key.</p></div>`;
-    console.error(e);
+      var places = results.slice(0, 8);
+      var html = '<div class="section-title" style="margin-top:0;">Nearby Now</div>';
+      for (var i = 0; i < places.length; i++) {
+        var p = places[i];
+        var known = allRestaurants.find(function(r) { return r.name.toLowerCase() === p.name.toLowerCase(); });
+        var badge = (known && known.visitCount > 0) ? '<div class="visit-badge">' + known.visitCount + '</div>' : '';
+        var vicinity = p.vicinity || '';
+        html += '<div class="restaurant-item" onclick="openNearbyPlace('' + escAttr(p.place_id) + '','' + escAttr(p.name) + '','' + escAttr(vicinity) + '')">'
+          + '<div class="restaurant-avatar">' + restaurantEmoji(p.name) + badge + '</div>'
+          + '<div class="restaurant-info">'
+          + '<div class="restaurant-name">' + escHtml(p.name) + '</div>'
+          + '<div class="restaurant-meta">' + escHtml(vicinity) + '</div>'
+          + '</div>'
+          + '<div class="restaurant-arrow">&#x203A;</div>'
+          + '</div>';
+      }
+      nearby.innerHTML = html;
+    });
   }
+
+  trySearch();
 }
 
 async function openNearbyPlace(placeId, name, address) {
