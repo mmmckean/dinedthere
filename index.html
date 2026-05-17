@@ -1345,17 +1345,14 @@ function findNearby() {
 }
 
 function fetchNearbyPlaces(lat, lng) {
-  // Uses Maps JS API PlacesService — the only CORS-safe browser approach.
-  // The &libraries=places script tag loaded above provides google.maps.places.
   const nearby = document.getElementById('nearby-list');
   nearby.innerHTML = '<div class="empty-state"><div class="spinner"></div></div>';
 
-  // Wait up to 4s for the async Maps SDK to finish loading
   let waited = 0;
   function trySearch() {
     if (!window.__mapsReady || !window.google || !window.google.maps || !window.google.maps.places) {
       if (waited >= 4000) {
-        nearby.innerHTML = '<div class="empty-state"><div class="empty-icon">&#x26A0;&#xFE0F;</div><p>Google Maps failed to load.<br>Make sure your API key has <strong>Maps JavaScript API</strong> and <strong>Places API</strong> enabled.</p></div>';
+        nearby.innerHTML = '<div class="empty-state"><div class="empty-icon">&#x26A0;</div><p>Google Maps failed to load. Check API key has Maps JavaScript API + Places API enabled.</p></div>';
         return;
       }
       waited += 200;
@@ -1363,7 +1360,6 @@ function fetchNearbyPlaces(lat, lng) {
       return;
     }
 
-    // PlacesService needs a DOM node as its "map" anchor when no real map is shown
     const mapDiv = document.createElement('div');
     const service = new google.maps.places.PlacesService(mapDiv);
 
@@ -1373,7 +1369,7 @@ function fetchNearbyPlaces(lat, lng) {
       type: 'restaurant'
     }, function(results, status) {
       if (status !== google.maps.places.PlacesServiceStatus.OK || !results || results.length === 0) {
-        nearby.innerHTML = '<div class="empty-state"><div class="empty-icon">&#x1F5FA;&#xFE0F;</div><p>No restaurants found nearby.</p></div>';
+        nearby.innerHTML = '<div class="empty-state"><div class="empty-icon">&#x1F5FA;</div><p>No restaurants found nearby.</p></div>';
         return;
       }
 
@@ -1383,22 +1379,38 @@ function fetchNearbyPlaces(lat, lng) {
         var p = places[i];
         var known = allRestaurants.find(function(r) { return r.name.toLowerCase() === p.name.toLowerCase(); });
         var badge = (known && known.visitCount > 0) ? '<div class="visit-badge">' + known.visitCount + '</div>' : '';
-        var vicinity = p.vicinity || '';
-        html += '<div class="restaurant-item" onclick="openNearbyPlace('' + escAttr(p.place_id) + '','' + escAttr(p.name) + '','' + escAttr(vicinity) + '')">'
+        var vic = p.vicinity || '';
+        // Use data attributes to avoid ALL quote-escaping issues in onclick
+        html += '<div class="restaurant-item nearby-place-item"'
+          + ' data-place-id="' + escAttr(p.place_id) + '"'
+          + ' data-name="' + escAttr(p.name) + '"'
+          + ' data-vicinity="' + escAttr(vic) + '">'
           + '<div class="restaurant-avatar">' + restaurantEmoji(p.name) + badge + '</div>'
           + '<div class="restaurant-info">'
           + '<div class="restaurant-name">' + escHtml(p.name) + '</div>'
-          + '<div class="restaurant-meta">' + escHtml(vicinity) + '</div>'
+          + '<div class="restaurant-meta">' + escHtml(vic) + '</div>'
           + '</div>'
           + '<div class="restaurant-arrow">&#x203A;</div>'
           + '</div>';
       }
       nearby.innerHTML = html;
+
+      // Attach click handlers via JS (no inline onclick = no quoting hell)
+      nearby.querySelectorAll('.nearby-place-item').forEach(function(el) {
+        el.addEventListener('click', function() {
+          openNearbyPlace(
+            el.getAttribute('data-place-id'),
+            el.getAttribute('data-name'),
+            el.getAttribute('data-vicinity')
+          );
+        });
+      });
     });
   }
 
   trySearch();
 }
+
 
 async function openNearbyPlace(placeId, name, address) {
   // Check if already in our DB
