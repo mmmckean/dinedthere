@@ -775,8 +775,9 @@ input, button, textarea, select {
      LOADING OVERLAY
      ============================================================ -->
 <div class="loading-overlay" id="loading-overlay">
-  <div class="big-spinner"></div>
-  <span>Loading Dine Journal…</span>
+  <div class="big-spinner" id="loading-spinner"></div>
+  <span id="loading-msg">Loading Dine Journal…</span>
+  <span id="loading-error" style="display:none;color:#c8502a;font-size:0.85rem;max-width:280px;text-align:center;line-height:1.5;margin-top:8px;"></span>
 </div>
 
 <!-- ============================================================
@@ -1028,14 +1029,26 @@ const GOOGLE_PLACES_API_KEY = "AIzaSyAkpuaOxSyJjoN6cJ5cgPFTkKNs3F_Kv8s";
 /* ============================================================
    FIREBASE INIT
    ============================================================ */
-firebase.initializeApp(FIREBASE_CONFIG);
-const auth      = firebase.auth();
-const db        = firebase.firestore();
-const storage   = firebase.storage();
+let auth, db, storage;
+try {
+  firebase.initializeApp(FIREBASE_CONFIG);
+  auth    = firebase.auth();
+  db      = firebase.firestore();
+  storage = firebase.storage();
 
-// Enable offline persistence (Firestore caching)
-db.enablePersistence({ synchronizeTabs: true })
-  .catch(err => console.warn("Persistence unavailable:", err.code));
+  // Enable offline persistence (Firestore caching)
+  db.enablePersistence({ synchronizeTabs: true })
+    .catch(err => console.warn("Persistence unavailable:", err.code));
+
+} catch(initErr) {
+  console.error('Firebase init failed:', initErr);
+  document.getElementById('loading-spinner').style.display = 'none';
+  document.getElementById('loading-msg').textContent = 'Firebase configuration error';
+  const errEl = document.getElementById('loading-error');
+  errEl.style.display = 'block';
+  errEl.textContent = initErr.message;
+  throw initErr; // stop script execution
+}
 
 /* ============================================================
    APP STATE
@@ -1051,7 +1064,20 @@ let allRestaurants  = [];     // cached list
 /* ============================================================
    FIREBASE AUTH OBSERVER
    ============================================================ */
+// Safety net: if Firebase auth never responds in 10s, show a helpful error
+const authTimeout = setTimeout(() => {
+  const overlay = document.getElementById('loading-overlay');
+  if (overlay && overlay.style.display !== 'none') {
+    document.getElementById('loading-spinner').style.display = 'none';
+    document.getElementById('loading-msg').textContent = 'Unable to connect to Firebase';
+    const errEl = document.getElementById('loading-error');
+    errEl.style.display = 'block';
+    errEl.innerHTML = 'Check that your Firebase project is active and that <strong>mmmckean.github.io</strong> is listed under Authorized Domains in Firebase Console → Authentication → Settings.';
+  }
+}, 10000);
+
 auth.onAuthStateChanged(user => {
+  clearTimeout(authTimeout);
   document.getElementById('loading-overlay').style.display = 'none';
   if (user) {
     currentUser = user;
